@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Revenue & Profit Projection</title>
+<style>
+  :root { --bg:#f5f7fb; --card:#fff; --ink:#172033; --muted:#657087; --line:#e5e9f2; --blue:#3867e8; --teal:#159a8c; --orange:#e99a36; --red:#d95757; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .wrap { max-width:1250px; margin:0 auto; padding:28px 20px 48px; }
+  header { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:22px; }
+  h1 { margin:0 0 6px; font-size:clamp(25px,4vw,34px); letter-spacing:-.04em; }
+  .sub { color:var(--muted); margin:0; max-width:720px; }
+  .tag { border:1px solid #d9e2ff; background:#edf2ff; color:#3155ba; border-radius:999px; padding:7px 11px; font-size:12px; font-weight:700; white-space:nowrap; }
+  .layout { display:grid; grid-template-columns:310px minmax(0,1fr); gap:18px; align-items:start; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:18px; box-shadow:0 5px 20px rgba(24,39,75,.035); }
+  .inputs { padding:21px; position:sticky; top:16px; }
+  h2 { font-size:17px; margin:0 0 16px; letter-spacing:-.02em; }
+  .field { margin-bottom:17px; }
+  label { display:block; font-size:13px; font-weight:700; margin-bottom:7px; }
+  .hint { color:var(--muted); font-size:12px; margin-top:5px; }
+  input, select { width:100%; border:1px solid #d9dfeb; border-radius:10px; padding:11px 12px; font:inherit; color:var(--ink); background:#fff; outline:none; }
+  input:focus, select:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(56,103,232,.12); }
+  .input-prefix { position:relative; }
+  .input-prefix span { position:absolute; left:12px; top:11px; color:var(--muted); }
+  .input-prefix input { padding-left:28px; }
+  .actions { display:flex; gap:9px; margin-top:22px; }
+  button { border:0; border-radius:10px; padding:11px 14px; cursor:pointer; font:inherit; font-weight:700; }
+  .primary { background:var(--blue); color:white; flex:1; }
+  .secondary { background:#f0f3f9; color:#33405a; }
+  .main { display:grid; gap:18px; min-width:0; }
+  .kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+  .kpi { padding:17px 18px; min-width:0; }
+  .kpi-label { color:var(--muted); font-size:12px; font-weight:700; margin-bottom:9px; }
+  .kpi-value { font-size:clamp(19px,2.4vw,27px); font-weight:800; letter-spacing:-.04em; overflow-wrap:anywhere; }
+  .kpi-note { font-size:12px; color:var(--muted); margin-top:5px; }
+  .chart-card { padding:20px 20px 16px; min-width:0; }
+  .chart-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:10px; }
+  .chart-head h2 { margin-bottom:3px; }
+  .chart-head p { color:var(--muted); margin:0; font-size:12px; }
+  .legend { display:flex; flex-wrap:wrap; gap:12px; font-size:12px; color:var(--muted); }
+  .legend span { display:inline-flex; align-items:center; gap:6px; }
+  .dot { width:9px; height:9px; border-radius:3px; display:inline-block; }
+  canvas { display:block; width:100%; height:280px; }
+  .table-card { overflow:hidden; }
+  .table-top { padding:20px 20px 10px; display:flex; justify-content:space-between; align-items:center; gap:12px; }
+  .table-top h2 { margin:0; }
+  .table-wrap { overflow:auto; max-height:460px; }
+  table { width:100%; border-collapse:collapse; white-space:nowrap; font-size:13px; }
+  th,td { padding:12px 16px; border-bottom:1px solid var(--line); text-align:right; }
+  th { color:var(--muted); background:#fafbfe; font-size:11px; text-transform:uppercase; letter-spacing:.04em; position:sticky; top:0; z-index:1; }
+  th:first-child, td:first-child { text-align:left; }
+  tbody tr:hover { background:#f8faff; }
+  .positive { color:#087f70; font-weight:700; }
+  .negative { color:var(--red); font-weight:700; }
+  .foot { color:var(--muted); font-size:12px; padding:14px 20px 18px; }
+  .note { padding:15px 17px; color:#4c5a73; font-size:12px; background:#f0f4ff; border:1px solid #dce5ff; border-radius:13px; }
+  @media(max-width:980px) { .layout { grid-template-columns:1fr; } .inputs { position:static; } .kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  @media(max-width:560px) { .wrap { padding:18px 12px 30px; } header { display:block; } .tag { display:inline-block; margin-top:12px; } .kpis { gap:9px; } .kpi { padding:14px; } .chart-card { padding:16px 12px 12px; } canvas { height:240px; } .chart-head { display:block; } .legend { margin-top:9px; } }
+  @media print { body { background:#fff; } .wrap { max-width:none; padding:0; } .inputs { display:none; } .layout { display:block; } .main { gap:12px; } .card { box-shadow:none; break-inside:avoid; } .table-wrap { max-height:none; overflow:visible; } th { position:static; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Revenue &amp; Profit Projection</h1>
+      <p class="sub">Model recurring monthly revenue, operating profit, and cumulative results as your user base grows.</p>
+    </div>
+    <div class="tag">Interactive forecast</div>
+  </header>
+
+  <div class="layout">
+    <aside class="card inputs">
+      <h2>Projection assumptions</h2>
+      <div class="field">
+        <label for="newUsers">New users acquired each month</label>
+        <input id="newUsers" type="number" min="0" step="1" value="100">
+        <div class="hint">Assumes the same number of new paying users every month.</div>
+      </div>
+      <div class="field">
+        <label for="price">Subscription price per user / month</label>
+        <div class="input-prefix"><span>₹</span><input id="price" type="number" min="0" step="1" value="999"></div>
+      </div>
+      <div class="field">
+        <label for="expenses">Total expenses per month</label>
+        <div class="input-prefix"><span>₹</span><input id="expenses" type="number" min="0" step="1000" value="150000"></div>
+        <div class="hint">A fixed monthly total, not a per-user cost.</div>
+      </div>
+      <div class="field">
+        <label for="months">Projection period</label>
+        <select id="months">
+          <option value="6">6 months</option>
+          <option value="12" selected>12 months</option>
+          <option value="18">18 months</option>
+          <option value="24">24 months</option>
+          <option value="36">36 months</option>
+          <option value="60">60 months</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="startMonth">Starting month label</label>
+        <input id="startMonth" type="month" value="2026-11">
+      </div>
+      <div class="actions">
+        <button class="primary" id="updateBtn">Update projection</button>
+        <button class="secondary" id="resetBtn">Reset</button>
+      </div>
+      <div class="actions">
+        <button class="secondary" id="csvBtn" style="width:100%">Export CSV</button>
+        <button class="secondary" id="printBtn" style="width:100%">Print / PDF</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="kpis">
+        <div class="card kpi"><div class="kpi-label">Revenue in final month</div><div class="kpi-value" id="finalRevenue">₹0</div><div class="kpi-note" id="finalUsers">0 paying users</div></div>
+        <div class="card kpi"><div class="kpi-label">Profit in final month</div><div class="kpi-value" id="finalProfit">₹0</div><div class="kpi-note">Revenue less monthly expenses</div></div>
+        <div class="card kpi"><div class="kpi-label">Cumulative revenue</div><div class="kpi-value" id="totalRevenue">₹0</div><div class="kpi-note">Across the full projection</div></div>
+        <div class="card kpi"><div class="kpi-label">Cumulative profit</div><div class="kpi-value" id="totalProfit">₹0</div><div class="kpi-note" id="breakEven">Operating break-even: —</div></div>
+      </section>
+
+      <section class="card chart-card">
+        <div class="chart-head"><div><h2>Monthly revenue vs. expenses</h2><p>Revenue grows with the cumulative paying user base.</p></div>
+          <div class="legend"><span><i class="dot" style="background:#3867e8"></i>Revenue</span><span><i class="dot" style="background:#e99a36"></i>Expenses</span></div>
+        </div>
+        <canvas id="monthlyChart" aria-label="Monthly revenue and expenses chart"></canvas>
+      </section>
+
+      <section class="card chart-card">
+        <div class="chart-head"><div><h2>Cumulative revenue vs. cumulative profit</h2><p>Running totals from month 1 through the selected period.</p></div>
+          <div class="legend"><span><i class="dot" style="background:#159a8c"></i>Cumulative revenue</span><span><i class="dot" style="background:#8b75d7"></i>Cumulative profit</span></div>
+        </div>
+        <canvas id="cumulativeChart" aria-label="Cumulative revenue and profit chart"></canvas>
+      </section>
+
+      <section class="card chart-card">
+        <div class="chart-head"><div><h2>Monthly profit</h2><p>Positive values mean revenue exceeds fixed monthly expenses.</p></div>
+          <div class="legend"><span><i class="dot" style="background:#159a8c"></i>Profit</span><span><i class="dot" style="background:#d95757"></i>Loss</span></div>
+        </div>
+        <canvas id="profitChart" aria-label="Monthly profit chart"></canvas>
+      </section>
+      <section class="card chart-card">
+        <div class="chart-head"><div><h2>Year-over-year (YoY) growth</h2><p>Compares each month with the same month one year earlier. Year 1 is the baseline.</p></div>
+          <div class="legend"><span><i class="dot" style="background:#3867e8"></i>Revenue growth</span><span><i class="dot" style="background:#159a8c"></i>Profit growth</span></div>
+        </div>
+        <canvas id="yoyChart" aria-label="Year-over-year revenue and profit growth chart"></canvas>
+      </section>
+
+      <section class="card table-card">
+        <div class="table-top"><h2>Month-by-month breakdown</h2><span class="hint">Scroll horizontally on small screens</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Month</th><th>New users</th><th>Total users</th><th>Revenue</th><th>Expenses</th><th>Monthly profit</th><th>Cumulative revenue</th><th>Cumulative profit</th><th>Revenue YoY</th><th>Profit YoY</th></tr></thead>
+            <tbody id="resultsBody"></tbody>
+          </table>
+        </div>
+        <div class="foot">Forecast assumes users remain subscribed after joining, no churn, no taxes, and no additional variable costs. YoY percentages compare a month with the same month 12 months earlier; they are shown as “—” until a prior-year comparison exists or when the prior-year value is zero.</div>
+      </section>
+      <div class="note"><strong>How the model works:</strong> Total paying users in month N = new users per month × N. Monthly revenue = total paying users × subscription price. Monthly profit = revenue − fixed monthly expenses. Cumulative totals sum each month's values. YoY growth compares each month against the corresponding month one year earlier, rather than comparing against the immediately preceding month.</div>
+    </main>
+  </div>
+</div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const fmt = n => new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits:0 }).format(n);
+  const pct = n => n === null || !Number.isFinite(n) ? '—' : (n > 0 ? '+' : '') + n.toLocaleString('en-IN',{maximumFractionDigits:1,minimumFractionDigits:0}) + '%';
+  const compact = n => {
+    const a = Math.abs(n);
+    if (a >= 1e7) return (n/1e7).toLocaleString('en-IN',{maximumFractionDigits:1}) + 'Cr';
+    if (a >= 1e5) return (n/1e5).toLocaleString('en-IN',{maximumFractionDigits:1}) + 'L';
+    if (a >= 1e3) return (n/1e3).toLocaleString('en-IN',{maximumFractionDigits:1}) + 'K';
+    return Math.round(n).toString();
+  };
+  const monthLabel = (base, offset) => {
+    const [y,m] = (base || '2026-11').split('-').map(Number);
+    const d = new Date(y, (m-1)+offset, 1);
+    return d.toLocaleDateString('en-IN', {month:'short', year:'numeric'});
+  };
+  let rows = [];
+
+  function makeRows() {
+    const newUsers = Math.max(0, Math.floor(Number($('newUsers').value) || 0));
+    const price = Math.max(0, Number($('price').value) || 0);
+    const expenses = Math.max(0, Number($('expenses').value) || 0);
+    const months = Math.max(1, Number($('months').value) || 12);
+    let cumulativeRevenue = 0, cumulativeProfit = 0;
+    rows = Array.from({length:months}, (_,i) => {
+      const users = newUsers * (i+1);
+      const revenue = users * price;
+      const profit = revenue - expenses;
+      cumulativeRevenue += revenue;
+      cumulativeProfit += profit;
+      return { month:monthLabel($('startMonth').value,i), monthIndex:i, newUsers, users, revenue, expenses, profit, cumulativeRevenue, cumulativeProfit };
+    });
+    rows.forEach((r, i) => {
+      const prior = i >= 12 ? rows[i-12] : null;
+      r.revenueYoY = prior && prior.revenue !== 0 ? (r.revenue-prior.revenue)/Math.abs(prior.revenue)*100 : null;
+      r.profitYoY = prior && prior.profit !== 0 ? (r.profit-prior.profit)/Math.abs(prior.profit)*100 : null;
+      // If prior-year profit was zero, growth percentage is undefined.
+    });
+  }
+
+  function drawChart(canvasId, series, opts={}) {
+    const canvas = $(canvasId), rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const width = Math.max(280, rect.width), height = parseInt(getComputedStyle(canvas).height,10) || 280;
+    canvas.width = Math.round(width*dpr); canvas.height = Math.round(height*dpr);
+    const ctx = canvas.getContext('2d'); ctx.scale(dpr,dpr);
+    ctx.clearRect(0,0,width,height);
+    const pad = {l:58,r:14,t:15,b:38};
+    const plotW = width-pad.l-pad.r, plotH=height-pad.t-pad.b;
+    const pointCount = series.length ? series[0].values.length : rows.length;
+    const vals = series.flatMap(s=>s.values);
+    let min = opts.zeroBase ? Math.min(0,...vals) : Math.min(...vals);
+    let max = Math.max(0,...vals);
+    if (min===max) { max = max===0 ? 1 : max*1.1; min = opts.zeroBase ? 0 : min*.9; }
+    const range = max-min || 1;
+    const y = v => pad.t+(max-v)/range*plotH;
+    const x = i => pad.l+(pointCount===1 ? plotW/2 : i/(pointCount-1)*plotW);
+    ctx.font='11px system-ui, sans-serif'; ctx.textAlign='right'; ctx.textBaseline='middle';
+    for(let i=0;i<=4;i++){
+      const v=min+(range*i/4), yy=y(v);
+      ctx.strokeStyle='#e9edf5'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(pad.l,yy); ctx.lineTo(width-pad.r,yy); ctx.stroke();
+      ctx.fillStyle='#738098'; ctx.fillText((v<0?'−':'')+compact(Math.abs(v)),pad.l-9,yy);
+    }
+    if(min<0 && max>0){ctx.strokeStyle='#9aa5b8';ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(pad.l,y(0));ctx.lineTo(width-pad.r,y(0));ctx.stroke();ctx.setLineDash([]);}
+    const labelEvery = Math.max(1, Math.ceil(pointCount/8));
+    ctx.textAlign='center';ctx.textBaseline='top';ctx.fillStyle='#738098';
+    const labelRows = opts.customLabels ? opts.customLabels : rows;
+    labelRows.forEach((r,i)=>{if(i%labelEvery===0 || i===labelRows.length-1)ctx.fillText((r.month || '').replace(/ \d{4}$/,''),x(i),height-pad.b+12);});
+    series.forEach(s=>{
+      if(s.type==='bar'){
+        const groupW=plotW/rows.length, barW=Math.max(2,Math.min(22,groupW/(series.length+1)));
+        const idx=series.indexOf(s);
+        s.values.forEach((v,i)=>{
+          const xx=pad.l+i*groupW+groupW/2+(idx-(series.length-1)/2)*barW;
+          const yy=y(Math.max(v,0)), y0=y(Math.min(v,0));
+          ctx.fillStyle=s.color;ctx.globalAlpha=.9;ctx.fillRect(xx-barW*.42,yy,barW*.84,Math.max(1,y0-yy));ctx.globalAlpha=1;
+        });
+      } else {
+        ctx.strokeStyle=s.color;ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.lineCap='round';ctx.beginPath();
+        s.values.forEach((v,i)=>{if(i===0)ctx.moveTo(x(i),y(v));else ctx.lineTo(x(i),y(v));});ctx.stroke();
+        if(pointCount<=18) s.values.forEach((v,i)=>{ctx.fillStyle=s.color;ctx.beginPath();ctx.arc(x(i),y(v),3,0,Math.PI*2);ctx.fill();});
+      }
+    });
+  }
+
+  function render() {
+    makeRows();
+    const last=rows[rows.length-1] || {revenue:0,profit:0,users:0,cumulativeRevenue:0,cumulativeProfit:0};
+    $('finalRevenue').textContent=fmt(last.revenue);
+    $('finalProfit').textContent=fmt(last.profit);
+    $('finalProfit').className='kpi-value '+(last.profit<0?'negative':'positive');
+    $('finalUsers').textContent=last.users.toLocaleString('en-IN')+' paying users';
+    $('totalRevenue').textContent=fmt(last.cumulativeRevenue);
+    $('totalProfit').textContent=fmt(last.cumulativeProfit);
+    $('totalProfit').className='kpi-value '+(last.cumulativeProfit<0?'negative':'positive');
+    const firstBreak=rows.find(r=>r.profit>=0);
+    $('breakEven').textContent=firstBreak ? 'Monthly break-even: '+firstBreak.month : 'No monthly break-even in period';
+    $('resultsBody').innerHTML=rows.map(r=>`<tr>
+      <td>${r.month}</td><td>${r.newUsers.toLocaleString('en-IN')}</td><td>${r.users.toLocaleString('en-IN')}</td>
+      <td>${fmt(r.revenue)}</td><td>${fmt(r.expenses)}</td><td class="${r.profit<0?'negative':'positive'}">${fmt(r.profit)}</td>
+      <td>${fmt(r.cumulativeRevenue)}</td><td class="${r.cumulativeProfit<0?'negative':'positive'}">${fmt(r.cumulativeProfit)}</td>
+      <td>${pct(r.revenueYoY)}</td><td>${pct(r.profitYoY)}</td>
+    </tr>`).join('');
+    drawChart('monthlyChart',[
+      {name:'Revenue',values:rows.map(r=>r.revenue),color:'#3867e8',type:'bar'},
+      {name:'Expenses',values:rows.map(r=>r.expenses),color:'#e99a36',type:'bar'}
+    ],{zeroBase:true});
+    drawChart('cumulativeChart',[
+      {name:'Cumulative revenue',values:rows.map(r=>r.cumulativeRevenue),color:'#159a8c'},
+      {name:'Cumulative profit',values:rows.map(r=>r.cumulativeProfit),color:'#8b75d7'}
+    ]);
+    drawChart('profitChart',[{name:'Profit',values:rows.map(r=>r.profit),color:'#159a8c',type:'bar'}],{zeroBase:true});
+    const yoyRows = rows.slice(12);
+    // Only months with a full prior-year comparison are plotted.
+    drawChart('yoyChart',[
+      {name:'Revenue growth',values:yoyRows.map(r=>r.revenueYoY ?? 0),color:'#3867e8'},
+      {name:'Profit growth',values:yoyRows.map(r=>r.profitYoY ?? 0),color:'#159a8c'}
+    ],{zeroBase:false, customLabels:yoyRows.map(r=>r.month)});
+    const yoyCanvas = $('yoyChart');
+    if (yoyRows.length === 0) {
+      const ctx = yoyCanvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const rect = yoyCanvas.getBoundingClientRect();
+      yoyCanvas.width = Math.max(280,rect.width)*dpr;
+      yoyCanvas.height = (parseInt(getComputedStyle(yoyCanvas).height,10)||280)*dpr;
+      ctx.scale(dpr,dpr);
+      ctx.clearRect(0,0,yoyCanvas.width,yoyCanvas.height);
+      ctx.fillStyle='#738098';ctx.font='14px system-ui, sans-serif';ctx.textAlign='center';
+      ctx.fillText('Choose 18, 24, 36 or 60 months to see YoY comparisons.',Math.max(280,rect.width)/2,125);
+    }
+  }
+
+  $('updateBtn').addEventListener('click',render);
+  ['newUsers','price','expenses','months','startMonth'].forEach(id => $(id).addEventListener('change',render));
+  $('resetBtn').addEventListener('click',()=>{$('newUsers').value=100;$('price').value=999;$('expenses').value=150000;$('months').value='12';$('startMonth').value='2026-11';render();});
+  $('printBtn').addEventListener('click',()=>window.print());
+  $('csvBtn').addEventListener('click',()=>{
+    const headers=['Month','New users','Total users','Revenue','Expenses','Monthly profit','Cumulative revenue','Cumulative profit','Revenue YoY %','Profit YoY %'];
+    const lines=[headers,...rows.map(r=>[r.month,r.newUsers,r.users,r.revenue,r.expenses,r.profit,r.cumulativeRevenue,r.cumulativeProfit,r.revenueYoY ?? '',r.profitYoY ?? ''])];
+    const csv=lines.map(line=>line.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+    const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='revenue-profit-projection.csv';a.click();URL.revokeObjectURL(url);
+  });
+  let resizeTimer;
+  window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(render,120);});
+  render();
+})();
+</script>
+</body>
+</html>
